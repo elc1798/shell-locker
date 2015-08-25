@@ -1,9 +1,5 @@
 #!/usr/local/bin/python3
 
-'''
-This is a verification mechanism for logging on to my zShell
-'''
-
 import os, sys, subprocess
 import time
 import getpass, hashlib, binascii
