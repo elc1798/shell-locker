@@ -34,15 +34,27 @@ class ansi_colors:
 # Set variable for current location of script
 
 SCRIPT_PATH = os.path.realpath(__file__)
+SCRIPT_PARENT_DIR = os.path.dirname(SCRIPT_PATH)
+FLAGS = []
 
 def invalidate():
-    print("")
+    COMMAND = ""
     if os.access(SCRIPT_PATH, os.X_OK):
-        os.system(SCRIPT_PATH)
+        COMMAND = SCRIPT_PATH
     else:
-        os.system("python3 " + SCRIPT_PATH)
+        COMMAND = "python3 " + SCRIPT_PATH
+    # Add flags onto the command:
+    for flag in FLAGS:
+        COMMAND += " " + flag
+    # Execute:
+    os.system(COMMAND)
 
-def verify():
+def verify(TESTMODE):
+    if not os.path.exists(SCRIPT_PARENT_DIR + "/shelllocker.conf"):
+        print(ansi_colors.YELLOW + "shelllocker.conf not found" + ansi_colors.RESET)
+        print(ansi_colors.YELLOW + "Run with '-s' flag to generate the file" + ansi_colors.RESET)
+        atexit.unregister(invalidate)
+        exit()
     f = open(os.path.dirname(SCRIPT_PATH) + "/shelllocker.conf" , 'r')
     DATA = f.read().replace(" " , "")
     f.close()
@@ -70,23 +82,28 @@ def verify():
         exit()
     else:
         print("Incorrect.")
-        blankshell()
+        blankshell(TESTMODE)
 
-def blankshell():
+def blankshell(TESTMODE):
     print("Use the command <help> to list all the commands.")
     while True:
         user_query = input(ansi_colors.GREEN + "[limbo_shell]" + ansi_colors.RESET + "$ ")
         if user_query == 'start_t':
-            verify()
+            verify(TESTMODE)
         elif user_query == 'clear':
             print("\033\143", end="", flush=True)
+        elif user_query == 'exit' and TESTMODE:
+            atexit.unregister(invalidate)
+            exit()
         elif user_query == 'help':
             print("start_t | Starts the auth engine for terminal session")
             print("clear   | Clears the screen")
+            if TESTMODE:
+                print("exit    | Exits ShellLocker (Only available in test mode)")
             print("help    | Displays this message")
 
 def setup():
-    configured = 'shelllocker.conf' in [f for f in os.listdir('.') if os.path.isfile(f)]
+    configured = os.path.exists(SCRIPT_PARENT_DIR + "/shelllocker.conf")
     if configured:
         print(ansi_colors.YELLOW + "ShellLocker is already configured." + ansi_colors.RESET)
         print(ansi_colors.YELLOW + "Use the '--reset' flag to remove configurations" + ansi_colors.RESET)
@@ -116,7 +133,7 @@ def setup():
             DATA += ' '.join(USER_LEN[i:i+2] for i in range(0,len(USER_LEN),2)) + " "
             DATA += ' '.join(USER[i:i+2] for i in range(0,len(USER),2)) + " "
             DATA += ' '.join(HASHED_PASS[i:i+2] for i in range(0,len(HASHED_PASS),2)) + " "
-            f = open(os.path.dirname(SCRIPT_PATH) + "/shelllocker.conf" , 'w')
+            f = open(SCRIPT_PARENT_DIR + "/shelllocker.conf" , 'w')
             f.write(DATA)
             f.close()
 
@@ -143,7 +160,7 @@ def diagnose():
                 # Fix the issue here
     if not os.access(SCRIPT_PATH, os.X_OK):
         print(ansi_colors.RED + "Script is not an executable!" + ansi_colors.RESET)
-        esponded = False
+        responded = False
         while not responded:
             conf = str(input("Fix? (Y/N): "))
             if conf in ['N' , 'n']:
@@ -151,7 +168,7 @@ def diagnose():
             elif conf in ['Y' , 'y']:
                 responded = True
                 os.system("chmod +x " + SCRIPT_PATH)
-    if 'shelllocker.conf' not in [f for f in os.listdir('.') if os.path.isfile(f)]:
+    if not os.path.exists(SCRIPT_PARENT_DIR + "/shelllocker.conf"):
         print(ansi_colors.YELLOW + "shelllocker.conf not found" + ansi_colors.RESET)
         print(ansi_colors.YELLOW + "Run with '-s' flag to generate the file" + ansi_colors.RESET)
 
@@ -174,16 +191,29 @@ def main():
         help="Resets ShellLocker configurations",
         action="store_true"
     )
+    parser.add_argument(
+        "-t",
+        "--test",
+        help="Puts ShellLocker into a test environment.",
+        action="store_true"
+    )
     args = parser.parse_args()
     if args.setup:
+        FLAGS.append("--setup")
         setup()
     elif args.diagnose:
+        FLAGS.append("--diagnose")
         diagnose()
     elif args.reset:
+        FLAGS.append("--reset")
         reset()
+    elif args.test:
+        FLAGS.append("--test")
+        atexit.register(invalidate)
+        blankshell(True)
     else:
         atexit.register(invalidate)
-        blankshell()
+        blankshell(False)
 
 if __name__ == "__main__":
     main()
