@@ -95,11 +95,14 @@ def blankshell(TESTMODE):
         elif user_query == 'exit' and TESTMODE:
             atexit.unregister(invalidate)
             exit()
+        elif user_query == 'reset':
+            reset()
         elif user_query == 'help':
             print("start_t | Starts the auth engine for terminal session")
             print("clear   | Clears the screen")
             if TESTMODE:
                 print("exit    | Exits ShellLocker (Only available in test mode)")
+            print("reset   | Reset ShellLocker configurations")
             print("help    | Displays this message")
 
 def setup():
