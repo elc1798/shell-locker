@@ -1,7 +1,8 @@
 #!/usr/local/bin/python3
 
+# Change the above shebang to your python3 binary path
+
 import os, sys, subprocess
-import time
 import getpass, hashlib, binascii
 import atexit
 import argparse
